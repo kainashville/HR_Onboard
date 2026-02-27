@@ -1,0 +1,246 @@
+:root {
+  --sidebar-w: 230px;
+  --brand: #0078d4;
+  --brand-dark: #005a9e;
+}
+
+body {
+  background: #f4f6fb;
+  font-size: 0.875rem;
+}
+
+/* Sidebar */
+#sidebar {
+  width: var(--sidebar-w);
+  min-height: 100vh;
+  background: #1b2a3b;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+}
+#sidebar .brand {
+  background: #0078d4;
+  padding: 18px 20px;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+#sidebar .nav-link {
+  color: #b0bec5;
+  padding: 9px 20px;
+  border-radius: 0;
+  font-size: 0.83rem;
+  cursor: pointer;
+}
+#sidebar .nav-link:hover,
+#sidebar .nav-link.active {
+  background: rgba(0, 120, 212, 0.25);
+  color: #fff;
+}
+#sidebar .nav-link i {
+  width: 20px;
+}
+
+/* Main content */
+#main {
+  margin-left: var(--sidebar-w);
+  min-height: 100vh;
+}
+#topbar {
+  background: #fff;
+  border-bottom: 1px solid #e0e6ef;
+  padding: 10px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 99;
+}
+
+/* Cards */
+.stat-card {
+  border-radius: 10px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+}
+.stat-card .card-body {
+  padding: 18px 20px;
+}
+.stat-num {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.case-card {
+  border-radius: 10px;
+  border: 1px solid #e0e6ef;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.case-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 120, 212, 0.13);
+  border-color: #0078d4;
+}
+
+/* Tasks */
+.task-row {
+  transition: background 0.15s;
+}
+.task-row:hover {
+  background: #f0f4ff;
+}
+.overdue-row {
+  background: #fff3e0 !important;
+}
+
+/* Badges */
+.badge-phase {
+  background: #e3f2fd;
+  color: #0078d4;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.role-badge {
+  font-size: 0.72rem;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+.role-HR_ADMIN {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+.role-IT_ADMIN {
+  background: #e3f2fd;
+  color: #0078d4;
+}
+.role-FINANCE_ADMIN {
+  background: #fff8e1;
+  color: #f57f17;
+}
+.role-MANAGER {
+  background: #fce4ec;
+  color: #c62828;
+}
+.role-TASK_OWNER {
+  background: #f3e5f5;
+  color: #6a1b9a;
+}
+.role-READ_ONLY_AUDITOR {
+  background: #eceff1;
+  color: #546e7a;
+}
+
+/* Progress */
+.progress {
+  height: 6px;
+  border-radius: 3px;
+}
+
+/* Wizard */
+.wizard-step {
+  display: none;
+}
+.wizard-step.active {
+  display: block;
+}
+.step-indicator .step {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #e0e6ef;
+  color: #90a4ae;
+  font-weight: 700;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.step-indicator .step.done {
+  background: #43a047;
+  color: #fff;
+}
+.step-indicator .step.current {
+  background: #0078d4;
+  color: #fff;
+}
+.step-indicator .step-line {
+  width: 60px;
+  height: 2px;
+  background: #e0e6ef;
+  display: inline-block;
+  vertical-align: middle;
+}
+.step-indicator .step-line.done {
+  background: #43a047;
+}
+
+/* Audit */
+.audit-row td {
+  font-size: 0.8rem;
+  vertical-align: middle;
+}
+
+/* Toast */
+#toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+}
+
+/* Login */
+.login-screen {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
+}
+.login-card {
+  max-width: 420px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  #sidebar {
+    width: 60px;
+  }
+  #sidebar .nav-link span,
+  #sidebar .brand-text {
+    display: none;
+  }
+  #sidebar .sidebar-user-panel {
+    display: none !important;
+  }
+  #main {
+    margin-left: 60px;
+  }
+  .login-card {
+    max-width: 100%;
+  }
+}

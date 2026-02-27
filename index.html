@@ -59,7 +59,9 @@
   @media(max-width:768px){
     #sidebar { width: 60px; }
     #sidebar .nav-link span, #sidebar .brand-text { display: none; }
+    #sidebar .mt-auto { display: none !important; }
     #main { margin-left: 60px; }
+    .login-card { max-width: 100%; }
   }
 </style>
 </head>
@@ -288,6 +290,7 @@ let state = {
   currentCaseId: null,
   wizardData: {},
   caseFilter: 'ALL',
+  searchQuery: '',
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -400,11 +403,13 @@ function signIn() {
   const role = document.getElementById('demo-role').value;
   const u = DEMO_USERS[role];
   state.user = { ...u, role };
+  loadState();
   addAudit('USER_LOGIN', 'Session', u.email, `Signed in as ${role}`);
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   applyRBAC();
   seedDemoData();
+  saveState();
   goto('dashboard');
   toast(`Welcome, ${u.name}!`, 'success');
 }
@@ -452,7 +457,7 @@ function seedDemoData() {
   c1.tasks[1].status = 'DONE';
   c1.tasks[2].status = 'IN_PROGRESS';
   c1.tasks[6].status = 'DONE';
-  c1.tasks[6].dueDate = fmtDate(addDays(today,-3)); // make overdue one
+  c1.tasks[2].dueDate = fmtDate(addDays(today,-3)); // make in-progress task overdue for demo
   const c2 = state.cases[1];
   c2.tasks[0].status = 'DONE';
   c2.tasks[1].status = 'DONE';
@@ -528,7 +533,7 @@ function renderDashboard() {
     { icon:'bi-folder2-open', label:'Active Cases', val: activeCases.length, color:'primary' },
     { icon:'bi-list-check', label:'My Open Tasks', val: myTasks.length, color:'info' },
     { icon:'bi-exclamation-triangle-fill', label:'Overdue', val: overdue.length, color:'danger' },
-    { icon:'bi-check-circle-fill', label:'Done Today', val: allTasks.filter(t=>t.status==='DONE').length, color:'success' },
+    { icon:'bi-check-circle-fill', label:'Total Done', val: allTasks.filter(t=>t.status==='DONE').length, color:'success' },
   ].map(s => `
     <div class="col-6 col-lg-3">
       <div class="card stat-card">
@@ -551,8 +556,8 @@ function renderDashboard() {
       const due = new Date(t.dueDate);
       const isOvd = due < today2;
       return `<tr class="task-row ${isOvd?'overdue-row':''}">
-        <td class="ps-3">${t.title}</td>
-        <td><small class="text-muted">${t.caseId}</small></td>
+        <td class="ps-3">${esc(t.title)}</td>
+        <td><small class="text-muted">${esc(t.caseId)}</small></td>
         <td><small class="${isOvd?'text-danger fw-semibold':''}">${t.dueDate}</small></td>
         <td>${statusBadge(t.status)}</td>
         <td><button class="btn btn-xs btn-outline-primary" style="font-size:.75rem;padding:2px 8px;" onclick="quickUpdateTask('${t.caseId}','${t.id}')">Update</button></td>
@@ -567,11 +572,11 @@ function renderDashboard() {
     const pct = c.tasks.length ? Math.round(done/c.tasks.length*100) : 0;
     return `<div class="px-3 py-2 border-bottom" onclick="goto('case-detail','${c.id}')" style="cursor:pointer;">
       <div class="d-flex justify-content-between align-items-center">
-        <div><strong>${c.person.name}</strong> <small class="text-muted ms-1">${c.id}</small></div>
+        <div><strong>${esc(c.person.name)}</strong> <small class="text-muted ms-1">${esc(c.id)}</small></div>
         <span class="badge ${c.type==='ONBOARDING'?'bg-primary':'bg-danger'} bg-opacity-75">${c.type==='ONBOARDING'?'ONB':'OFF'}</span>
       </div>
       <div class="progress mt-1"><div class="progress-bar ${c.type==='ONBOARDING'?'bg-primary':'bg-danger'}" style="width:${pct}%"></div></div>
-      <small class="text-muted">${pct}% complete · ${c.status}</small>
+      <small class="text-muted">${pct}% complete · ${esc(c.status)}</small>
     </div>`;
   }).join('') || '<div class="p-3 text-muted">No cases yet.</div>';
 }
@@ -581,6 +586,10 @@ function renderDashboard() {
 // ═══════════════════════════════════════════════════════════
 function renderCases() {
   let cases = state.cases;
+  if (state.searchQuery) {
+    const sq = state.searchQuery;
+    cases = cases.filter(c => c.id.toLowerCase().includes(sq) || c.person.name.toLowerCase().includes(sq) || c.person.email.toLowerCase().includes(sq));
+  }
   if (state.caseFilter === 'ONBOARDING') cases = cases.filter(c=>c.type==='ONBOARDING');
   else if (state.caseFilter === 'OFFBOARDING') cases = cases.filter(c=>c.type==='OFFBOARDING');
   else if (state.caseFilter === 'ACTIVE') cases = cases.filter(c=>c.status==='ACTIVE');
@@ -596,12 +605,12 @@ function renderCases() {
       <div class="case-card p-3" onclick="goto('case-detail','${c.id}')">
         <div class="d-flex justify-content-between align-items-start mb-2">
           <div>
-            <div class="fw-bold">${c.person.name}</div>
-            <small class="text-muted">${c.person.email}</small>
+            <div class="fw-bold">${esc(c.person.name)}</div>
+            <small class="text-muted">${esc(c.person.email)}</small>
           </div>
           <span class="badge ${c.type==='ONBOARDING'?'bg-primary':'bg-danger'}">${c.type==='ONBOARDING'?'Onboarding':'Offboarding'}</span>
         </div>
-        <div class="text-muted mb-2" style="font-size:.8rem;">${c.id} · ${c.person.dept} · ${c.person.emptype}</div>
+        <div class="text-muted mb-2" style="font-size:.8rem;">${esc(c.id)} · ${esc(c.person.dept)} · ${esc(c.person.emptype)}</div>
         <div class="progress mb-1"><div class="progress-bar ${c.type==='ONBOARDING'?'bg-primary':'bg-danger'}" style="width:${pct}%"></div></div>
         <div class="d-flex justify-content-between align-items-center mt-1">
           <small class="text-muted">${done}/${c.tasks.length} tasks · ${pct}%</small>
@@ -617,6 +626,8 @@ function renderCases() {
 }
 function filterCases(f, btn) {
   state.caseFilter = f;
+  state.searchQuery = '';
+  document.getElementById('global-search').value = '';
   document.querySelectorAll('#page-cases .btn-outline-secondary').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderCases();
@@ -642,10 +653,10 @@ function renderCaseDetail() {
   let html = `
     <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
       <div>
-        <h5 class="fw-bold mb-0">${c.person.name}
+        <h5 class="fw-bold mb-0">${esc(c.person.name)}
           <span class="badge ${c.type==='ONBOARDING'?'bg-primary':'bg-danger'} ms-2">${c.type==='ONBOARDING'?'Onboarding':'Offboarding'}</span>
         </h5>
-        <div class="text-muted">${c.id} · ${c.person.email} · ${c.person.dept}</div>
+        <div class="text-muted">${esc(c.id)} · ${esc(c.person.email)} · ${esc(c.person.dept)}</div>
       </div>
       <div class="d-flex gap-2 flex-wrap">
         ${isAdmin && c.status==='ACTIVE' ? `<button class="btn btn-sm btn-success" onclick="closeCase('${c.id}')"><i class="bi bi-check2-all me-1"></i>Complete Case</button>` : ''}
@@ -655,7 +666,7 @@ function renderCaseDetail() {
     <div class="row g-3 mb-3">
       <div class="col-auto"><strong>${c.type==='ONBOARDING'?'Hire Date':'Last Day'}:</strong> ${c.keyDate}</div>
       <div class="col-auto"><strong>Status:</strong> <span class="badge bg-secondary bg-opacity-25 text-dark">${c.status}</span></div>
-      <div class="col-auto"><strong>Initiated by:</strong> ${c.initiatedBy}</div>
+      <div class="col-auto"><strong>Initiated by:</strong> ${esc(c.initiatedBy)}</div>
       <div class="col-auto"><strong>Progress:</strong> ${done}/${c.tasks.length} (${pct}%)</div>
     </div>
     <div class="progress mb-4" style="height:8px;">
@@ -679,7 +690,7 @@ function renderCaseDetail() {
       const myTask = canActOnTask(t);
       html += `<tr class="task-row ${isOvd?'overdue-row':''}">
         <td class="ps-3">
-          <div class="fw-semibold">${t.title}</div>
+          <div class="fw-semibold">${esc(t.title)}</div>
           ${t.comments.length?`<small class="text-muted"><i class="bi bi-chat-dots me-1"></i>${t.comments.length} comment(s)</small>`:''}
         </td>
         <td><span class="role-badge role-${t.ownerRole}">${ROLE_LABELS[t.ownerRole]}</span></td>
@@ -760,6 +771,7 @@ function saveTask(caseId, taskId) {
     addAudit('TASK_UPDATED', 'TaskInstance', t.id, `Status: ${oldStatus} → ${newStatus}`);
   }
   closeModal();
+  saveState();
   toast('Task updated!', 'success');
   renderCaseDetail();
 }
@@ -773,6 +785,7 @@ function closeCase(caseId) {
   const c = state.cases.find(x=>x.id===caseId);
   c.status = 'COMPLETED';
   addAudit('CASE_STATUS_CHANGED', 'LifecycleCase', caseId, 'ACTIVE → COMPLETED');
+  saveState();
   toast('Case marked completed.', 'success');
   renderCaseDetail();
 }
@@ -844,9 +857,9 @@ function renderReview() {
   document.getElementById('wizard-review').innerHTML = `
     <table class="table table-sm table-borderless mb-0">
       <tr><th>Type</th><td>${wizardType==='ONBOARDING'?'New Hire Onboarding':'Employee Offboarding'}</td></tr>
-      <tr><th>Employee</th><td>${document.getElementById('w-name').value} &lt;${document.getElementById('w-email').value}&gt;</td></tr>
-      <tr><th>Department</th><td>${document.getElementById('w-dept').value||'—'}</td></tr>
-      <tr><th>Manager</th><td>${document.getElementById('w-mgr').value||'—'}</td></tr>
+      <tr><th>Employee</th><td>${esc(document.getElementById('w-name').value)} &lt;${esc(document.getElementById('w-email').value)}&gt;</td></tr>
+      <tr><th>Department</th><td>${esc(document.getElementById('w-dept').value)||'—'}</td></tr>
+      <tr><th>Manager</th><td>${esc(document.getElementById('w-mgr').value)||'—'}</td></tr>
       <tr><th>Template</th><td>${tmpl.name}</td></tr>
       <tr><th>${wizardType==='ONBOARDING'?'Hire Date':'Last Day'}</th><td>${document.getElementById('w-keydate')?.value||'—'}</td></tr>
     </table>`;
@@ -866,6 +879,7 @@ function createCase() {
     keyDate: document.getElementById('w-keydate').value,
     initiatedBy: state.user.email,
   });
+  saveState();
   toast(`Case ${c.id} created with ${c.tasks.length} tasks!`, 'success');
   goto('case-detail', c.id);
 }
@@ -887,10 +901,10 @@ function renderAudit() {
   document.getElementById('audit-tbody').innerHTML = logs.map(l=>`
     <tr class="audit-row">
       <td>${l.ts.replace('T',' ').substring(0,19)}</td>
-      <td>${l.actor}</td>
-      <td><span class="badge bg-secondary bg-opacity-10 text-dark">${l.action}</span></td>
-      <td>${l.entityType}: <code>${l.entityId}</code></td>
-      <td class="text-muted">${l.detail}</td>
+      <td>${esc(l.actor)}</td>
+      <td><span class="badge bg-secondary bg-opacity-10 text-dark">${esc(l.action)}</span></td>
+      <td>${esc(l.entityType)}: <code>${esc(l.entityId)}</code></td>
+      <td class="text-muted">${esc(l.detail)}</td>
     </tr>`).join('') || '<tr><td colspan="5" class="text-center text-muted py-4">No audit events.</td></tr>';
 }
 
@@ -957,15 +971,15 @@ function renderAdmin(tab) {
 //  SEARCH
 // ═══════════════════════════════════════════════════════════
 function globalSearch(q) {
-  if (!q.trim()) return;
+  if (!q.trim()) { state.searchQuery=''; return; }
   const ql = q.toLowerCase();
   const found = state.cases.filter(c =>
     c.id.toLowerCase().includes(ql) ||
     c.person.name.toLowerCase().includes(ql) ||
     c.person.email.toLowerCase().includes(ql)
   );
-  if (found.length === 1) goto('case-detail', found[0].id);
-  else if (found.length > 1) { state.caseFilter='ALL'; goto('cases'); }
+  if (found.length === 1) { state.searchQuery=''; goto('case-detail', found[0].id); }
+  else if (found.length > 1) { state.searchQuery=ql; state.caseFilter='ALL'; goto('cases'); }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1014,9 +1028,11 @@ function createModal(title, body, footer) {
     <div class="card-body">${body}</div>
     ${footer?`<div class="card-footer text-end">${footer}</div>`:''}
   </div>`;
+  div.addEventListener('click', e => { if (e.target === div) closeModal(); });
   document.body.appendChild(div);
 }
 function closeModal() { document.getElementById('modal-overlay')?.remove(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 // ═══════════════════════════════════════════════════════════
 //  TOAST
@@ -1033,8 +1049,27 @@ function toast(msg, type='info') {
 // ═══════════════════════════════════════════════════════════
 //  UTILITIES
 // ═══════════════════════════════════════════════════════════
-function fmtDate(d) { return d.toISOString().substring(0,10); }
+// ═══════════════════════════════════════════════════════════
+//  PERSISTENCE (localStorage)
+// ═══════════════════════════════════════════════════════════
+function saveState() {
+  try { localStorage.setItem('slp_state', JSON.stringify({ cases: state.cases, auditLog: state.auditLog })); } catch(e) {}
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem('slp_state');
+    if (raw) { const s = JSON.parse(raw); state.cases = s.cases || []; state.auditLog = s.auditLog || []; }
+  } catch(e) {}
+}
+
+function fmtDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
 function addDays(d, n) { const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 </script>
 <style>
 @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
